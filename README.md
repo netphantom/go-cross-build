@@ -1,4 +1,10 @@
 # GitHub Action: go-build-action
+
+###The original fork of this project can be found here:
+
+###https://github.com/thatisuday/go-cross-build
+
+
 This actions generates cross-platform executable files from a Go module.
 
 ![release](/assets/release.png)
@@ -33,6 +39,7 @@ jobs:
             name: 'program'
             compress: 'true'
             dest: 'dist'
+            addfolder: 'templates'
 ```
 
 #### ☉ option: **platforms**
@@ -50,6 +57,8 @@ The `name` option sets a prefix for the build filenames. In compression mode, th
 #### ☉ option: **dest**
 The `dest` option sets the output directory for the build files. This should be a relative directory without leading `./`.
 
+#### ☉ option: **addfolder**
+The `addfolder` options allows to add a single project folder in the compressed file.
 
 ## Build Artifacts
 This action produces following build-artifacts.
@@ -76,6 +85,27 @@ This action produces following build-artifacts.
   |  └── README.md
   ├── ...
   └── <name>-windows-amd64.tar.gz
+     ├── <name>.exe
+     ├── LICENSE
+     └── README.md
+```
+
+#### In compression mode with addfolder
+```
+./<dest>/
+  ├── <name>-darwin-amd64.tar.gz
+  |  ├── <folder>
+  |  ├── <name>
+  |  ├── LICENSE
+  |  └── README.md
+  ├── <name>-linux-amd64.tar.gz
+  |  ├── <folder>
+  |  ├── <name>
+  |  ├── LICENSE
+  |  └── README.md
+  ├── ...
+  └── <name>-windows-amd64.tar.gz
+     ├── <folder>
      ├── <name>.exe
      ├── LICENSE
      └── README.md

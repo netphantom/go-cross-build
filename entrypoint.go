@@ -1,7 +1,9 @@
 package main
 
+import "C"
 import (
 	"fmt"
+	cp "github.com/otiai10/copy"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,7 +41,7 @@ func copyFile(src, dest string) {
 /*************************************/
 
 // build the package for a platform
-func build(packageName, destDir string, platform map[string]string, ldflags string, compress bool) {
+func build(packageName, destDir string, platform map[string]string, ldflags string, compress bool, addFolder string) {
 
 	// platform config
 	platformKernel := platform["kernel"]
@@ -124,6 +126,14 @@ func build(packageName, destDir string, platform map[string]string, ldflags stri
 			includeFiles = append(includeFiles, "LICENSE")
 		}
 
+		if addFolder != "" {
+			err := cp.Copy(addFolder, destDir+"/"+addFolder)
+			if err != nil {
+				panic(err)
+			}
+			includeFiles = append(includeFiles, addFolder)
+		}
+
 		/*------------*/
 
 		// command-line options for the `tar` command
@@ -145,6 +155,7 @@ func build(packageName, destDir string, platform map[string]string, ldflags stri
 		/*------------*/
 
 		// generate cleanup command
+		includeFiles = includeFiles[:len(includeFiles)-1]
 		cleanCmd := exec.Command("rm", append([]string{"-f"}, includeFiles...)...)
 
 		// set working directory for the command
@@ -153,8 +164,19 @@ func build(packageName, destDir string, platform map[string]string, ldflags stri
 		// start cleanup process
 		fmt.Println("Performing cleanup operation using:", cleanCmd.String())
 		if err := cleanCmd.Run(); err != nil {
-			fmt.Println("An error occurred during cleaup:", err)
+			fmt.Println("An error occurred during cleanup:", err)
 			os.Exit(1)
+		}
+
+		// clean the added folder, if any
+		if addFolder != "" {
+			cleanDir := exec.Command("rm", "-rf", addFolder)
+			cleanDir.Dir = destDirPath
+			fmt.Println("Cleaning the added folder using:", cleanDir.String())
+			if err := cleanDir.Run(); err != nil {
+				fmt.Println("An error occurred during cleanup:", err)
+				os.Exit(1)
+			}
 		}
 
 	}
@@ -170,6 +192,7 @@ func main() {
 	inputCompress := os.Getenv("INPUT_COMPRESS")
 	inputDest := os.Getenv("INPUT_DEST")
 	inputLdflags := os.Getenv("INPUT_LDFLAGS")
+	inputAddFolder := os.Getenv("INPUT_ADDFOLDER")
 
 	// package name to build
 	packageName := strings.ReplaceAll(inputPackage, " ", "")
@@ -186,6 +209,15 @@ func main() {
 		compress = true
 	}
 
+	// folder to add in the .tar.gz
+	addFolder := strings.ReplaceAll(inputAddFolder, " ", "")
+	if addFolder != "" {
+		if compress == false {
+			fmt.Println("The AddFolder command can be used ONLY IF the Compress flag is true")
+			os.Exit(1)
+		}
+	}
+
 	// for each platform, execute `build` function
 	for _, platform := range platforms {
 
@@ -199,7 +231,7 @@ func main() {
 		}
 
 		// execute `build` function
-		build(packageName, destDir, platformMap, inputLdflags, compress)
+		build(packageName, destDir, platformMap, inputLdflags, compress, addFolder)
 	}
 
 	/*------------*/
